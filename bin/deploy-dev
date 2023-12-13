@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+DOMAIN="todo-dev.tell.nu"
+DEV_IMAGE="registry.tell.nu/todo:dev"
+CONTAINER="todo-dev"
+
+pp-color blue; echo "[ TAG IMAGE ]"; pp-color
+
+if ! podman tag $(image-select-repo) $DEV_IMAGE; then
+    exit 1
+fi
+
+pp-color blue; echo "[ PUSH IMAGE ]"; pp-color
+
+if ! podman push $DEV_IMAGE; then
+    exit 1
+fi
+
+pp-color blue; echo "[ PULL IMAGE ]"; pp-color
+
+if ! podman -r pull $DEV_IMAGE; then
+    exit 1
+fi
+
+pp-color blue; echo "[ DATABASE ]"; pp-color
+
+DB=todo_dev
+USER=todo_dev
+PASS=$(gen-random-string 64)
+
+psql-remote-execute <<-EOF
+    SELECT 'CREATE DATABASE $DB' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DB')\gexec
+    \c $DB
+    DO
+    \$\$
+        BEGIN
+            IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '$USER') THEN
+                CREATE USER "$USER" WITH ENCRYPTED PASSWORD '$PASS';
+                GRANT pg_read_all_data TO "$USER";
+                GRANT pg_write_all_data TO "$USER";
+                GRANT CREATE ON SCHEMA public TO "$USER";
+            ELSE
+                ALTER USER "$USER" WITH PASSWORD '$PASS';
+            END IF;
+        END
+    \$\$;
+EOF
+
+pp-color blue; echo "[ MIGRATIONS ]"; pp-color
+
+podman -r run \
+    --name "$CONTAINER_migrate" \
+    --rm \
+    --network='db' \
+    --env "SECRET_KEY_BASE=$(gen-random-string 64)" \
+    --env "DATABASE_URL=ecto://$USER:$PASS@postgres/$DB" \
+    "$DEV_IMAGE" /app/bin/migrate
+
+pp-color blue; echo "[ CONTAINER ]"; pp-color
+
+podman -r run \
+    -d \
+    --name $CONTAINER \
+    --restart=always \
+    --replace \
+    --network='traefik' \
+    --network='db' \
+    --env "PHX_HOST=$DOMAIN" \
+    --env "DATABASE_URL=ecto://$USER:$PASS@postgres/$DB" \
+    --env "SECRET_KEY_BASE=$(gen-random-string 64)" \
+    --label 'traefik.enable=true' \
+    --label "traefik.http.routers.$CONTAINER.entrypoints=websecure" \
+    --label "traefik.http.routers.$CONTAINER.rule=Host(\`$DOMAIN\`)" \
+    --label "traefik.http.routers.$CONTAINER.tls=true" \
+    "$DEV_IMAGE"
+
+pp-color blue; echo "[ LOGS ]"; pp-color
+
+timeout 15s podman -r logs -f $CONTAINER
