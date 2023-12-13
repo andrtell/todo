@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+
+# ╭──────────────╮
+# │ SELECT IMAGE │
+# ╰──────────────╯
+
+if ! IMAGE=$(image-select-repo); then
+    exit 1
+fi
+
+# ╭────────────╮
+# │ SUB-DOMAIN │
+# ╰────────────╯
+
+SUB=$1
+
+if [[ -z "$SUB" ]]; then
+    SUB="todo_$(podman inspect $IMAGE --format '{{.ID}}' | cut -c-5)"
+fi
+
+DOMAIN="$SUB.tell.nu"
+
+# ╭───────────╮
+# │ CONTINUE? │
+# ╰───────────╯
+
+echo -n "Deploy $(pp-color red)${IMAGE}$(pp-color) to $(pp-color red)${DOMAIN}$(pp-color) "
+read -p "[y/N]: " yn
+case $yn in
+    [Yy]*) :;;  
+    *) exit  0;;
+esac
+
+# ╭────────────╮
+# │ PUSH IMAGE │
+# ╰────────────╯
+
+pp-color blue; echo "[ PUSH IMAGE ]"; pp-color
+
+if ! podman push $IMAGE; then
+    exit 1
+fi
+
+# ╭────────────╮
+# │ PULL IMAGE │
+# ╰────────────╯
+
+pp-color blue; echo "[ PULL IMAGE ]"; pp-color
+
+if ! podman -r pull $IMAGE; then
+    exit 1
+fi
+
+# ╭──────────╮
+# │ DATABASE │
+# ╰──────────╯
+
+DB_NAME="$SUB"
+DB_USER="$SUB"
+DB_PASS=$(gen-random-string 64)
+
+pp-color blue; echo "[ DATABASE ]"; pp-color
+
+psql-remote-execute <<-EOF
+SELECT 'CREATE DATABASE $DB_NAME' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DB_NAME')\gexec
+\c $DB_NAME
+DO
+\$\$
+    BEGIN
+        IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '$DB_USER') THEN
+            CREATE USER "$DB_USER" WITH ENCRYPTED PASSWORD '$DB_PASS';
+            GRANT pg_read_all_data TO "$DB_USER";
+            GRANT pg_write_all_data TO "$DB_USER";
+            GRANT CREATE ON SCHEMA public TO "$DB_USER";
+        ELSE
+            ALTER USER "$DB_USER" WITH ENCRYPTED PASSWORD '$DB_PASS';
+        END IF;
+    END
+\$\$;
+EOF
+
+# ╭─────╮
+# │ ENV │
+# ╰─────╯
+
+PHX_SECRET_KEY_BASE=$(gen-random-string 64)
+
+# ╭────────────╮
+# │ MIGRATIONS │
+# ╰────────────╯
+
+pp-color blue; echo "[ MIGRATIONS ]"; pp-color
+
+podman -r run \
+    --name "${SUB}_migrate" \
+    --rm \
+    --network='db' \
+    --env "SECRET_KEY_BASE=$PHX_SECRET_KEY_BASE" \
+    --env "DATABASE_URL=ecto://$DB_USER:$DB_PASS@postgres/$DB_NAME" \
+    "$IMAGE" /app/bin/migrate
+
+
+# ╭───────────╮
+# │ CONTAINER │
+# ╰───────────╯
+
+pp-color blue; echo "[ CONTAINER ]"; pp-color
+
+podman -r run \
+    -d \
+    --name $SUB \
+    --restart=always \
+    --replace \
+    --network='traefik' \
+    --network='db' \
+    --env "PHX_HOST=$DOMAIN" \
+    --env "DATABASE_URL=ecto://$DB_USER:$DB_PASS@postgres/$DB_NAME" \
+    --env "SECRET_KEY_BASE=$PHX_SECRET_KEY_BASE" \
+    --label 'traefik.enable=true' \
+    --label "traefik.http.routers.$SUB.entrypoints=websecure" \
+    --label "traefik.http.routers.$SUB.rule=Host(\`$DOMAIN\`)" \
+    --label "traefik.http.routers.$SUB.tls=true" \
+    "$IMAGE"
+
+# ╭──────╮
+# │ LOGS │
+# ╰──────╯
+
+pp-color blue; echo "[ LOGS ]"; pp-color
+
+podman -r logs -f $SUB
