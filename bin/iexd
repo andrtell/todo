@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+APP="todo"
+
+# ╭──────────────────╮
+# │ SELECT CONTAINER │
+# ╰──────────────────╯
+
+CONTAINER_ID=$( \
+    podman -r container ls -f "label=application=$APP" \
+    | tail -n +2 \
+    | fzf \
+    | awk -F ' ' '{print $1}' \
+)
+
+if [[ -z "$CONTAINER_ID" ]]; then
+    exit 1
+fi
+
+# ╭──────╮
+# │ EXEC │
+# ╰──────╯
+
+podman -r container exec -it $CONTAINER_ID /app/bin/todo remote 
