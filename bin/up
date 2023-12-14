@@ -86,7 +86,7 @@ DB_PASS=$(gen-random-string 64)
 
 pp-fg blue; echo "[ DATABASE ]"; pp-fg
 
-psql-remote-execute <<-EOF
+psql-vm-exec <<-EOF
 SELECT 'CREATE DATABASE $DB_NAME' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DB_NAME')\gexec
 \c $DB_NAME
 DO

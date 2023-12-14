@@ -59,7 +59,7 @@ DB_USER="$SUB"
 
 pp-fg blue; echo "[ DATABASE ]"; pp-fg
 
-psql-remote-execute <<-EOF
+psql-vm-exec <<-EOF
 DROP DATABASE "$SUB";
 DROP USER "$SUB";
 EOF
