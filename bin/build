@@ -2,29 +2,46 @@
 
 APP=todo
 
+# ╭────────────╮
+# │ DOCKERFILE │
+# ╰────────────╯
+
 if ! git-is-repo; then
     exit 1
 fi
 
-GIT_DIR=$(git-get-dir)
-
-cd $GIT_DIR
+cd $(git-get-dir)
 
 if ! [[ -f Dockerfile ]] || [[ -f Containerfile ]]; then
     exit 1
 fi
 
+# ╭───────╮
+# │ IMAGE │
+# ╰───────╯
+
+GIT_BRANCH=$(git-get-branch)
+
 if git-is-clean; then
-    TAG="$(git-get-branch)_$(git-get-short-hash)"
+    GIT_COMMIT=$(git-get-hash)
+    TAG="${GIT_BRANCH}_$(echo $GIT_COMMIT | cut -c-5)"
 else
-    TAG="$(git-get-branch)_dev"
+    GIT_COMMIT="none"
+    TAG="${GIT_BRANCH}_dev"
 fi
 
 IMAGE="registry.tell.nu/$APP:$TAG"
 
-if ! podman build --tag $IMAGE --label "app=$APP" .; then
-    pp-color red; pp-box "BUILD FAILURE | $IMAGE"; pp-color
+# ╭───────╮
+# │ BUILD │
+# ╰───────╯
+
+if ! podman build \
+        --tag $IMAGE \
+        --label "application=$APP" \
+        --label "git=$GIT_COMMIT" \
+        .; then
     exit 1
 fi
     
-pp-color blue; pp-box "BUILD SUCCESS | $IMAGE"; pp-color
+pp-color blue; echo "$IMAGE"; pp-color
