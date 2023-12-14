@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+APP="todo"
+
+# ╭──────────────────╮
+# │ SELECT CONTAINER │
+# ╰──────────────────╯
+
+CONTAINER_ID=$( \
+    podman -r container ls -f "label=application=$APP" \
+    | tail -n +2 \
+    | fzf \
+    | awk -F ' ' '{print $1}' \
+)
+
+if [[ -z "$CONTAINER_ID" ]]; then
+    exit 1
+fi
+
+SUB=$(podman -r container inspect $CONTAINER_ID --format '{{.Name}}')
+
+# ╭──────────────╮
+# │ PROTECT PROD │
+# ╰──────────────╯
+
+if [[ "$SUB" == "$APP" ]]; then
+	pp-fg red; echo "Sorry, I'm afraid I can't do that."; pp-fg
+	exit 1
+fi
+
+# ╭───────────╮
+# │ CONTINUE? │
+# ╰───────────╯
+
+echo -n "Undeploy $(pp-fg red)${SUB}$(pp-fg) "
+read -p "[y/N]: " yn
+case $yn in
+    [Yy]*) :;;  
+    *) exit  0;;
+esac
+
+# ╭───────────╮
+# │ CONTAINER │
+# ╰───────────╯
+
+pp-fg blue; echo "[ CONTAINER ]"; pp-fg
+
+podman -r container stop $SUB
+podman -r container rm $SUB
+
+# ╭──────────╮
+# │ DATABASE │
+# ╰──────────╯
+
+DB_NAME="$SUB"
+DB_USER="$SUB"
+
+pp-fg blue; echo "[ DATABASE ]"; pp-fg
+
+psql-remote-execute <<-EOF
+DROP DATABASE "$SUB";
+DROP USER "$SUB";
+EOF

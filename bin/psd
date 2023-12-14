@@ -2,16 +2,4 @@
 
 APP=todo
 
-FORMAT='%-20s %-20s %-40s %-40s\n'
-
-HEADER="$(printf "$FORMAT" "NAME" "STATUS" "GIT" "IMAGE")"
-LINE="$(echo "$HEADER" | sed 's/./-/g')"
-
-echo "$HEADER"
-echo "$LINE"
-
-podman -r ps \
-    --filter "label=application=$APP" \
-    --format '{{.Names}};{{.Status}};{{.Labels.git}};{{.Image}}' \
-    | sort \
-    | awk -F ';' "{printf \"$FORMAT\", \$1, \$2, \$3, \$4}"
+podman -r ps --filter "label=application=$APP"

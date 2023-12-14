@@ -49,7 +49,7 @@ fi
 # │ CONTINUE? │
 # ╰───────────╯
 
-echo -n "Deploy $(pp-color red)${IMAGE}$(pp-color) @ $(pp-color red)${DOMAIN}$(pp-color) "
+echo -n "Deploy $(pp-fg red)${IMAGE}$(pp-fg) @ $(pp-fg red)${DOMAIN}$(pp-fg) "
 read -p "[y/N]: " yn
 case $yn in
     [Yy]*) :;;  
@@ -60,7 +60,7 @@ esac
 # │ PUSH IMAGE │
 # ╰────────────╯
 
-pp-color blue; echo "[ PUSH IMAGE ]"; pp-color
+pp-fg blue; echo "[ PUSH IMAGE ]"; pp-fg
 
 if ! podman push $IMAGE; then
     exit 1
@@ -70,7 +70,7 @@ fi
 # │ PULL IMAGE │
 # ╰────────────╯
 
-pp-color blue; echo "[ PULL IMAGE ]"; pp-color
+pp-fg blue; echo "[ PULL IMAGE ]"; pp-fg
 
 if ! podman -r pull $IMAGE; then
     exit 1
@@ -84,7 +84,7 @@ DB_NAME="$SUB"
 DB_USER="$SUB"
 DB_PASS=$(gen-random-string 64)
 
-pp-color blue; echo "[ DATABASE ]"; pp-color
+pp-fg blue; echo "[ DATABASE ]"; pp-fg
 
 psql-remote-execute <<-EOF
 SELECT 'CREATE DATABASE $DB_NAME' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DB_NAME')\gexec
@@ -114,7 +114,7 @@ PHX_SECRET_KEY_BASE=$(gen-random-string 64)
 # │ MIGRATIONS │
 # ╰────────────╯
 
-pp-color blue; echo "[ MIGRATIONS ]"; pp-color
+pp-fg blue; echo "[ MIGRATIONS ]"; pp-fg
 
 podman -r run \
     --name "${SUB}_migrate" \
@@ -129,7 +129,7 @@ podman -r run \
 # │ CONTAINER │
 # ╰───────────╯
 
-pp-color blue; echo "[ CONTAINER ]"; pp-color
+pp-fg blue; echo "[ CONTAINER ]"; pp-fg
 
 podman -r run \
     -d \
@@ -154,6 +154,6 @@ podman -r run \
 # │ LOGS │
 # ╰──────╯
 
-pp-color blue; echo "[ LOGS ]"; pp-color
+pp-fg blue; echo "[ LOGS ]"; pp-fg
 
 podman -r logs -f $SUB

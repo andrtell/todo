@@ -44,4 +44,4 @@ if ! podman build \
     exit 1
 fi
     
-pp-color blue; echo "$IMAGE"; pp-color
+pp-fg blue; echo "$IMAGE"; pp-fg
