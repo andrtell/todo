@@ -1,3 +1,30 @@
 #!/usr/bin/env bash
 
-image-build $(image-gen-name)
+APP=todo
+
+if ! git-is-repo; then
+    exit 1
+fi
+
+GIT_DIR=$(git-get-dir)
+
+cd $GIT_DIR
+
+if ! [[ -f Dockerfile ]] || [[ -f Containerfile ]]; then
+    exit 1
+fi
+
+if git-is-clean; then
+    TAG="$(git-get-branch)_$(git-get-short-hash)"
+else
+    TAG="$(git-get-branch)_dev"
+fi
+
+IMAGE="registry.tell.nu/$APP:$TAG"
+
+if ! podman build --tag $IMAGE --label "app=$APP" .; then
+    pp-color red; pp-box "BUILD FAILURE | $IMAGE"; pp-color
+    exit 1
+fi
+    
+pp-color blue; pp-box "BUILD SUCCESS | $IMAGE"; pp-color

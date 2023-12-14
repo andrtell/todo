@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 
+APP="todo"
+
 # ╭──────────────╮
 # │ SELECT IMAGE │
 # ╰──────────────╯
 
-if ! IMAGE=$(image-select-repo); then
+IMAGE=$( \
+    podman image ls -f "label=app=$APP" \
+    | tail -n +2 \
+    | fzf \
+    | awk -F ' ' '{print $1 ":" $2}' \
+)
+
+if [[ -z "$IMAGE" ]]; then
     exit 1
 fi
 
@@ -120,6 +129,7 @@ podman -r run \
     --label "traefik.http.routers.$SUB.entrypoints=websecure" \
     --label "traefik.http.routers.$SUB.rule=Host(\`$DOMAIN\`)" \
     --label "traefik.http.routers.$SUB.tls=true" \
+    --label "app=$APP" \
     "$IMAGE"
 
 # ╭──────╮
