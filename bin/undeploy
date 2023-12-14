@@ -18,6 +18,7 @@ if [[ -z "$CONTAINER_ID" ]]; then
 fi
 
 SUB=$(podman -r container inspect $CONTAINER_ID --format '{{.Name}}')
+IMAGE=$(podman -r container inspect $CONTAINER_ID --format '{{.Image}}')
 
 # ╭──────────────╮
 # │ PROTECT PROD │
@@ -47,6 +48,7 @@ pp-fg blue; echo "[ CONTAINER ]"; pp-fg
 
 podman -r container stop $SUB
 podman -r container rm $SUB
+podman -r image rm -i $IMAGE
 
 # ╭──────────╮
 # │ DATABASE │
