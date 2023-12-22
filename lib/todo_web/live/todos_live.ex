@@ -2,11 +2,16 @@ defmodule TodoWeb.TodosLive do
   use TodoWeb, :live_view
 
   alias Todo.Item
+  alias Todo.Store
 
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
+    dbg session
+    dbg socket
+
     socket =
       socket
-      |> assign(:todos, [])
+      |> assign(:todos, Store.get(session["session_id"]))
+      |> assign(:session_id, session["session_id"])
       |> assign(:mode, :edit)
 
     {:ok, socket}
@@ -23,15 +28,18 @@ defmodule TodoWeb.TodosLive do
   end
 
   def handle_event("create", _params, socket) do
-    socket =
+    todos =
       case socket.assigns.mode do
         :edit ->
-          todos = socket.assigns.todos ++ [Item.new()]
-          socket |> assign(:todos, todos)
+          socket.assigns.todos ++ [Item.new()]
 
         _ ->
-          socket
+          socket.assigns.todos
       end
+
+    :ok = Store.put(socket.assigns.session_id, todos)
+          
+    socket = socket |> assign(:todos, todos)
 
     {:noreply, socket}
   end
@@ -43,6 +51,8 @@ defmodule TodoWeb.TodosLive do
         %{id: ^id} = todo -> %{todo | checked: !todo.checked}
         todo -> todo
       end)
+
+    Store.put(socket.assigns.session_id, todos)
 
     socket = assign(socket, :todos, todos)
 
@@ -57,13 +67,16 @@ defmodule TodoWeb.TodosLive do
         todo -> [todo]
       end)
 
+    Store.put(socket.assigns.session_id, todos)
+
     socket = assign(socket, :todos, todos)
 
     {:noreply, socket}
   end
 
-  def handle_event("save", %{"id" => id, "value" => text} = params, socket) do
+  def handle_event("save", %{"id" => id, "value" => text} = _params, socket) do
     todos = update_todos(socket.assigns.todos, %{"id" => id, "text" => text})
+    Store.put(socket.assigns.session_id, todos)
     {:noreply, assign(socket, :todos, todos)}
   end
 
@@ -73,6 +86,7 @@ defmodule TodoWeb.TodosLive do
         socket
       ) do
     todos = update_todos(socket.assigns.todos, %{"id" => id, "text" => text})
+    Store.put(socket.assigns.session_id, todos)
     {:noreply, assign(socket, :todos, todos)}
   end
 

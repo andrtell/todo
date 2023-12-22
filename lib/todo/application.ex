@@ -17,9 +17,10 @@ defmodule Todo.Application do
       # Start Finch
       {Finch, name: Todo.Finch},
       # Start the Endpoint (http/https)
-      TodoWeb.Endpoint
+      TodoWeb.Endpoint,
       # Start a worker by calling: Todo.Worker.start_link(arg)
       # {Todo.Worker, arg}
+      Todo.Store
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
