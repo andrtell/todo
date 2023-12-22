@@ -1,0 +1,63 @@
+<div class="todos-live rows">
+  <div class="cols-end">
+    <div class="box0 cols">
+      <.button class={(@mode == :edit && "blue") || "gray"} phx-click="create">
+        <.svg_plus />
+      </.button>
+
+      <.button
+        class={(@mode == :remove && "red") || "yellow"}
+        phx-click="toggle_mode"
+      >
+        <.svg_minus />
+      </.button>
+    </div>
+  </div>
+
+  <%= for todo <- @todos do %>
+    <div class="cols-1 box">
+      <.form
+        :let={form}
+        id={todo.id}
+        class="cols"
+        for={to_form(Todo.Item.changeset(todo))}
+        phx-value-id={todo.id}
+        phx-submit="save"
+      >
+        <input
+          disabled={@mode == :remove && "true"}
+          class="box0"
+          type="text"
+          id={form[:text].id}
+          name={form[:text].name}
+          value={form[:text].value}
+          phx-blur="save"
+          phx-value-id={todo.id}
+          placeholder="Type you text here"
+        />
+      </.form>
+      <%= case @mode do %>
+        <% :edit -> %>
+          <.button
+            class={todo.checked && "green"}
+            phx-click="checkmark"
+            phx-value-id={"#{todo.id}"}
+          >
+            <%= if todo.checked do %>
+              <.svg_checkmark />
+            <% else %>
+              <.svg_blank />
+            <% end %>
+          </.button>
+        <% _ -> %>
+          <.button
+            class={todo.checked && "green"}
+            phx-click="remove"
+            phx-value-id={"#{todo.id}"}
+          >
+            <.svg_minus />
+          </.button>
+      <% end %>
+    </div>
+  <% end %>
+</div>

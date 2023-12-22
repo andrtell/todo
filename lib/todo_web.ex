@@ -84,7 +84,7 @@ defmodule TodoWeb do
       # HTML escaping functionality
       import Phoenix.HTML
       # Core UI components and translation
-      import TodoWeb.CoreComponents
+      import TodoWeb.Components
       import TodoWeb.Gettext
 
       # Shortcut for generating JS commands

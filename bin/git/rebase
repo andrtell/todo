@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+if ! git-is-repo; then
+    exit 1
+fi
+
+cd $(git-get-dir)
+
+git reset --soft $(git merge-base main HEAD)

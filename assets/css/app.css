@@ -1,5 +1,94 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
-
 /* This file is for your main application CSS */
+
+@font-face {
+    font-family: "D-DIN";
+    src: url(/fonts/D-DIN.woff2) format("woff2");
+}
+
+* {
+    box-sizing: border-box;
+
+    margin: 0;    
+    padding: 0;
+
+    font-family: "D-Din", monospace;
+    color: #111;
+
+    gap: 1.6rem;
+}
+
+footer,
+header,
+main {
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+    padding: 2.6rem 2.6rem;
+}
+
+/* Header */
+
+header {
+    border-bottom: 2px solid #555;
+}
+
+.logo {
+    color: black;
+    font-size: x-large;
+    text-decoration: none;
+}
+
+/* Layout */
+
+.rows { display: grid; }
+.cols, 
+.cols-1,
+.cols-end, 
+.cols-start {
+    display: grid;
+    align-items: center;
+    grid-auto-columns: repeat(auto-fill, minmax(min(7rem, 100%), 1fr));
+    grid-auto-flow: column; 
+}
+
+.cols-1     { grid-template-columns: 1fr; }
+.cols-end   { justify-content: end; }
+.cols-start { justify-content: start; }
+
+.center {
+    display: grid;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Button */
+
+button {
+    background: none;
+}
+
+/* Box */
+
+.box {
+    border: 2px solid #555;
+    padding: 0.618rem 0.618rem;
+}
+
+.box0 {
+    padding: 0.618rem 0.618rem;
+    margin: 2px;
+}
+
+/* Colors */
+
+.green { background: hsl(120, 75%, 90%); }
+.blue { background: hsl(210, 70%, 90%); }
+.red { background: hsl(0, 70%, 91%); }
+.yellow { background: hsl(60, 70%, 91%); }
+.gray { background: hsl(60, 0%, 91%); }
+
+/* Forms */
+
+input {
+    border: none;
+    font-size: 1.125rem;
+}

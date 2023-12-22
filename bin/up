@@ -42,7 +42,9 @@ AUTH_WALL=" "
 if [[ "$SUB" != "$APP" ]]; then
     HTPASS=$(htpasswd -Bbn $APP $APP)
     AUTH_WALL=" --label=traefik.http.middlewares.${SUB}.basicauth.users=${HTPASS} "
-    AUTH_WALL="$AUTH_WALL --label=traefik.http.routers.${SUB}.middlewares=${SUB}@docker "
+    AUTH_WALL+="--label=traefik.http.middlewares.${SUB}.basicauth.headerField=X-WebAuth-User "
+    AUTH_WALL+="--label=traefik.http.middlewares.${SUB}.basicauth.realm=${SUB} "
+    AUTH_WALL+="--label=traefik.http.routers.${SUB}.middlewares=${SUB}@docker "
 fi
 
 # ╭───────────╮
@@ -96,6 +98,7 @@ DO
             CREATE USER "$DB_USER" WITH ENCRYPTED PASSWORD '$DB_PASS';
             GRANT pg_read_all_data TO "$DB_USER";
             GRANT pg_write_all_data TO "$DB_USER";
+            GRANT CREATE ON DATABASE "$DB_NAME" TO "$DB_USER";
             GRANT CREATE ON SCHEMA public TO "$DB_USER";
         ELSE
             ALTER USER "$DB_USER" WITH ENCRYPTED PASSWORD '$DB_PASS';
