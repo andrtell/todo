@@ -20,20 +20,11 @@ fi
 SUB=$(podman -r container inspect $CONTAINER_ID --format '{{.Name}}')
 IMAGE=$(podman -r container inspect $CONTAINER_ID --format '{{.Image}}')
 
-# ╭──────────────╮
-# │ PROTECT PROD │
-# ╰──────────────╯
-
-if [[ "$SUB" == "$APP" ]]; then
-	pp-fg red; echo "Sorry, I'm afraid I can't do that."; pp-fg
-	exit 1
-fi
-
 # ╭───────────╮
 # │ CONTINUE? │
 # ╰───────────╯
 
-echo -n "Stop $(pp-fg red)${SUB}$(pp-fg)? "
+echo -n "Restart $(pp-fg red)${SUB}$(pp-fg)? "
 read -p "[y/N]: " yn
 case $yn in
     [Yy]*) :;;  
@@ -46,20 +37,4 @@ esac
 
 pp-fg blue; echo "[ CONTAINER ]"; pp-fg
 
-podman -r container stop $SUB
-podman -r container rm $SUB
-podman -r image rm -i $IMAGE
-
-# ╭──────────╮
-# │ DATABASE │
-# ╰──────────╯
-
-DB_NAME="$SUB"
-DB_USER="$SUB"
-
-pp-fg blue; echo "[ DATABASE ]"; pp-fg
-
-psql-vm-exec <<-EOF
-DROP DATABASE "$SUB";
-DROP USER "$SUB";
-EOF
+podman -r container restart $SUB

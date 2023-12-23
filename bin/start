@@ -51,7 +51,7 @@ fi
 # │ CONTINUE? │
 # ╰───────────╯
 
-echo -n "Deploy $(pp-fg red)${IMAGE}$(pp-fg) @ $(pp-fg red)${DOMAIN}$(pp-fg) "
+echo -n "Start $(pp-fg red)${IMAGE}$(pp-fg) on domain $(pp-fg red)${DOMAIN}$(pp-fg)? "
 read -p "[y/N]: " yn
 case $yn in
     [Yy]*) :;;  
