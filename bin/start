@@ -28,7 +28,7 @@ fi
 SUB=$1
 
 if [[ -z "$SUB" ]]; then
-    SUB="todo_$(podman inspect $IMAGE --format '{{.ID}}' | cut -c-5)"
+    SUB="${APP}_$(podman inspect $IMAGE --format '{{.ID}}' | cut -c-5)"
 fi
 
 DOMAIN="$SUB.tell.nu"
