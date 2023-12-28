@@ -20,7 +20,7 @@ defmodule Todo.Application do
       TodoWeb.Endpoint,
       # Start a worker by calling: Todo.Worker.start_link(arg)
       # {Todo.Worker, arg}
-      Todo.Store
+      Todo.Odot.Store
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -1,100 +1,111 @@
 defmodule TodoWeb.TodosLive do
   use TodoWeb, :live_view
 
-  alias Todo.Item
-  alias Todo.Store
+  alias Todo.Odot
+  alias Todo.Odot.Todo, as: Todo_
+
+  alias Phoenix.LiveView.JS
 
   def mount(_params, session, socket) do
-    dbg session
-    dbg socket
+    sid = session["session_id"]
+
+    todos = Odot.list_todos(sid)
 
     socket =
       socket
-      |> assign(:todos, Store.get(session["session_id"]))
-      |> assign(:session_id, session["session_id"])
-      |> assign(:mode, :edit)
+      |> assign(:mode, :add)
+      |> assign(:sid, sid)
+      |> assign(:todos, todos)
 
-    {:ok, socket}
+    {:ok, socket, temporary_assigns: [todos: []]}
   end
 
-  def handle_event("toggle_mode", _params, socket) do
-    socket =
-      case socket.assigns.mode do
-        :remove -> assign(socket, :mode, :edit)
-        _ -> assign(socket, :mode, :remove)
-      end
-
-    {:noreply, socket}
-  end
-
-  def handle_event("create", _params, socket) do
-    todos =
-      case socket.assigns.mode do
-        :edit ->
-          socket.assigns.todos ++ [Item.new()]
-
-        _ ->
-          socket.assigns.todos
-      end
-
-    :ok = Store.put(socket.assigns.session_id, todos)
-          
-    socket = socket |> assign(:todos, todos)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("checkmark", %{"id" => id} = _params, socket) do
-    todos =
-      socket.assigns.todos
-      |> Enum.map(fn
-        %{id: ^id} = todo -> %{todo | checked: !todo.checked}
-        todo -> todo
-      end)
-
-    Store.put(socket.assigns.session_id, todos)
-
-    socket = assign(socket, :todos, todos)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("remove", %{"id" => id} = _params, socket) do
-    todos =
-      socket.assigns.todos
-      |> Enum.flat_map(fn
-        %{id: ^id} = _todo -> []
-        todo -> [todo]
-      end)
-
-    Store.put(socket.assigns.session_id, todos)
-
-    socket = assign(socket, :todos, todos)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("save", %{"id" => id, "value" => text} = _params, socket) do
-    todos = update_todos(socket.assigns.todos, %{"id" => id, "text" => text})
-    Store.put(socket.assigns.session_id, todos)
-    {:noreply, assign(socket, :todos, todos)}
+  def handle_event("create_todo", _params, %{assigns: %{sid: sid}} = socket) do
+    {:noreply, assign(socket, :todos, [Odot.new_todo(sid)])}
   end
 
   def handle_event(
-        "save",
-        %{"id" => id, "item" => %{"text" => text}} = _params,
+        "delete_todo",
+        %{
+          "todo_id" => todo_id
+        },
         socket
       ) do
-    todos = update_todos(socket.assigns.todos, %{"id" => id, "text" => text})
-    Store.put(socket.assigns.session_id, todos)
-    {:noreply, assign(socket, :todos, todos)}
+    :ok = Odot.delete_todo(todo_id)
+    {:noreply, socket}
   end
 
-  defp update_todos(todos, %{"id" => id, "text" => text}) do
-    todos
-    |> Enum.map(fn
-      %{id: ^id} = todo -> %Todo.Item{todo | text: text}
-      todo -> todo
-    end)
+  def handle_event(
+        "update_todo",
+        %{
+          "from" => "form",
+          "todo_id" => todo_id,
+          "todo" => %{"text" => todo_text}
+        },
+        socket
+      ) do
+    Odot.update_todo(todo_id, fn todo -> %Todo_{todo | text: todo_text} end)
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "update_todo",
+        %{
+          "from" => "text",
+          "todo_id" => todo_id,
+          "value" => todo_text
+        },
+        socket
+      ) do
+    Odot.update_todo(todo_id, fn todo -> %Todo_{todo | text: todo_text} end)
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "update_todo",
+        %{
+          "from" => "done",
+          "todo_id" => todo_id,
+          "value" => "off"
+        },
+        socket
+      ) do
+    Odot.update_todo(
+      todo_id,
+      fn todo -> %Todo_{todo | done: true} end
+    )
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "update_todo",
+        %{
+          "from" => "done",
+          "todo_id" => todo_id,
+          "value" => "on"
+        },
+        socket
+      ) do
+    Odot.update_todo(
+      todo_id,
+      fn todo -> %Todo_{todo | done: false} end
+    )
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "toggle_mode",
+        _params,
+        %{assigns: %{sid: sid, mode: mode}} = socket
+      ) do
+    new_mode = Map.get(%{add: :del, del: :add}, mode)
+
+    todos = Odot.list_todos(sid)
+
+    socket = assign(socket, mode: new_mode, todos: todos)
+
+    {:noreply, socket}
   end
 end

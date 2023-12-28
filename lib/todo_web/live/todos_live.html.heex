@@ -1,63 +1,81 @@
 <div class="todos-live rows">
   <div class="cols-end">
     <div class="box0 cols">
-      <.button class={(@mode == :edit && "blue") || "gray"} phx-click="create">
-        <.svg_plus />
-      </.button>
-
       <.button
-        class={(@mode == :remove && "red") || "yellow"}
-        phx-click="toggle_mode"
+        id="toggle_delete"
+        phx-hook="Toggle"
+        phx-click={
+          %JS{}
+          |> JS.push("toggle_mode")
+          |> JS.dispatch("todo:toggle", to: "#toggle_delete")
+        }
+        class="yellow"
       >
         <.svg_minus />
+      </.button>
+
+      <.button phx-click="create_todo" class="blue">
+        <.svg_plus />
       </.button>
     </div>
   </div>
 
-  <%= for todo <- @todos do %>
-    <div class="cols-1 box">
+  <div class="rows" id="todos" phx-update="append">
+    <%= for todo <- @todos do %>
       <.form
         :let={form}
-        id={todo.id}
-        class="cols"
-        for={to_form(Todo.Item.changeset(todo))}
-        phx-value-id={todo.id}
-        phx-submit="save"
+        id={"todo-#{todo.id}"}
+        for={to_form(Todo_.changeset(todo))}
+        phx-update="ignore"
+        phx-submit="update_todo"
+        phx-value-todo_id={todo.id}
+        phx-value-from="form"
+        class="cols-1 box"
       >
         <input
-          disabled={@mode == :remove && "true"}
-          class="box0"
-          type="text"
           id={form[:text].id}
+          phx-blur="update_todo"
+          phx-value-from="text"
+          phx-value-todo_id={todo.id}
+          type="text"
           name={form[:text].name}
           value={form[:text].value}
-          phx-blur="save"
-          phx-value-id={todo.id}
+          class="box0"
           placeholder="Type you text here"
         />
-      </.form>
-      <%= case @mode do %>
-        <% :edit -> %>
-          <.button
-            class={todo.checked && "green"}
-            phx-click="checkmark"
-            phx-value-id={"#{todo.id}"}
-          >
-            <%= if todo.checked do %>
-              <.svg_checkmark />
-            <% else %>
-              <.svg_blank />
-            <% end %>
-          </.button>
-        <% _ -> %>
-          <.button
-            class={todo.checked && "green"}
-            phx-click="remove"
-            phx-value-id={"#{todo.id}"}
+
+        <div class="cols">
+          <button
+            phx-click={
+              %JS{}
+              |> JS.push("delete_todo")
+              |> JS.hide(to: "#todo-#{todo.id}")
+            }
+            phx-value-todo_id={"#{todo.id}"}
+            type="button"
+            class={["box", :add == @mode && "hidden", "delete-button"]}
           >
             <.svg_minus />
-          </.button>
-      <% end %>
-    </div>
-  <% end %>
+          </button>
+
+          <button
+            id={form[:done].id}
+            phx-click={
+              %JS{}
+              |> JS.push("update_todo")
+              |> JS.dispatch("todo:check", to: "##{form[:done].id}")
+            }
+            phx-value-from="done"
+            phx-value-todo_id={"#{todo.id}"}
+            phx-hook="Checkbox"
+            type="button"
+            value={(form[:done].value && "on") || "off"}
+            class={["box", "checkbox", form[:done].value && "on green"]}
+          >
+            <.svg_checkmark />
+          </button>
+        </div>
+      </.form>
+    <% end %>
+  </div>
 </div>

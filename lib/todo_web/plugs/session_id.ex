@@ -1,5 +1,4 @@
 defmodule TodoWeb.Plugs.SessionId do
-
   @behaviour Plug
 
   import Plug.Conn
